@@ -1,12 +1,28 @@
 //! Kernel-space drivers
 //!
-//! Только минимально необходимые драйверы в ядре:
-//!   - UART/Serial  — отладочный вывод / debug output
-//!   - Framebuffer  — вывод на экран   / screen output
-//!   - PCI          — обнаружение устройств / device discovery
-//!
-//! Все остальные драйверы — в userspace через Driver Manager.
-//! All other drivers live in userspace via Driver Manager.
+//! Минимально необходимые для отладки / Minimum required for debugging:
+//!   - UART/Serial  — отладочный вывод в терминал QEMU
+//!   - Framebuffer  — вывод на экран (TODO: Этап 2)
 
-// TODO: Этап 2 — UART + Framebuffer для отладки
-// TODO: Phase 2 — UART + Framebuffer for debug
+pub mod uart;
+
+/// Вывести строку в UART (для отладки).
+/// Print string to UART (for debugging).
+pub fn print(s: &str) {
+    uart::print(s);
+}
+
+/// Макрос для отладочного вывода.
+/// Debug print macro.
+#[macro_export]
+macro_rules! kprint {
+    ($($arg:tt)*) => {
+        $crate::drivers::uart::_print(format_args!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! kprintln {
+    ()           => ($crate::kprint!("\n"));
+    ($($arg:tt)*) => ($crate::kprint!("{}\n", format_args!($($arg)*)));
+}

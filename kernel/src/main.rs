@@ -1,10 +1,4 @@
 //! CupruxOS Kernel — точка входа / entry point
-//!
-//! Загрузчик (Limine) передаёт управление сюда после инициализации
-//! железа и передачи карты памяти.
-//!
-//! The bootloader (Limine) hands control here after hardware init
-//! and providing the memory map.
 
 #![no_std]
 #![no_main]
@@ -14,60 +8,76 @@
 
 use core::panic::PanicInfo;
 
-mod arch;    // HAL — Hardware Abstraction Layer
-mod mm;      // Memory Management (PMM + VMM + Heap)
-mod sched;   // Scheduler (MLFQ + IPC-aware)
-mod ipc;     // IPC + Capability System
-mod vfs;     // Virtual Filesystem interface
-mod drivers; // Kernel-space drivers
-mod syscall; // Syscall handler
+mod arch;
+mod mm;
+mod sched;
+mod ipc;
+mod vfs;
+mod drivers;
+mod syscall;
 
 /// Точка входа ядра — вызывается загрузчиком Limine.
 /// Kernel entry point — called by the Limine bootloader.
 #[no_mangle]
 pub extern "C" fn kernel_main() -> ! {
-    // 1. Инициализация архитектурно-зависимого кода (GDT, IDT, ...)
-    //    Architecture-specific init (GDT, IDT, ...)
+    // 0. UART — первым делом / first of all
+    drivers::uart::init();
+    kprintln!("CupruxOS booting...");
+
+    // 1. GDT + IDT
+    kprintln!("[arch] Initializing GDT + IDT...");
     arch::init();
+    kprintln!("[arch] OK — interrupts enabled");
 
-    // 2. Инициализация физической памяти (карта от загрузчика)
-    //    Physical memory init (map from bootloader)
+    // 2. Physical Memory Manager
+    kprintln!("[mm] Initializing PMM (Buddy)...");
     mm::pmm::init();
+    kprintln!("[mm] PMM OK");
 
-    // 3. Виртуальная память — маппинг ядра
-    //    Virtual memory — map the kernel
+    // 3. Virtual Memory Manager
+    kprintln!("[mm] Initializing VMM...");
     mm::vmm::init();
+    kprintln!("[mm] VMM OK");
 
-    // 4. Kernel heap — slab allocator
+    // 4. Kernel Heap
+    kprintln!("[mm] Initializing heap (Slab)...");
     mm::heap::init();
+    kprintln!("[mm] Heap OK");
 
-    // 5. IPC подсистема — порты и capability
-    //    IPC subsystem — ports and capabilities
+    // 5. IPC + Capability
+    kprintln!("[ipc] Initializing IPC + Capability...");
     ipc::init();
+    kprintln!("[ipc] OK");
 
-    // 6. Планировщик — MLFQ
-    //    Scheduler — MLFQ
+    // 6. Scheduler
+    kprintln!("[sched] Initializing scheduler (MLFQ)...");
     sched::init();
+    kprintln!("[sched] OK");
 
-    // 7. Syscall интерфейс
-    //    Syscall interface
+    // 7. Syscall interface
+    kprintln!("[syscall] Installing handler...");
     syscall::init();
+    kprintln!("[syscall] OK");
 
-    // 8. Запуск первого userspace процесса (init)
-    //    Launch first userspace process (init)
+    kprintln!("");
+    kprintln!("  ██████╗██╗   ██╗██████╗ ██████╗ ██╗   ██╗██╗  ██╗ ██████╗ ███████╗");
+    kprintln!(" ██╔════╝██║   ██║██╔══██╗██╔══██╗██║   ██║╚██╗██╔╝██╔═══██╗██╔════╝");
+    kprintln!(" ██║     ██║   ██║██████╔╝██████╔╝██║   ██║ ╚███╔╝ ██║   ██║███████╗");
+    kprintln!(" ╚██████╗╚██████╔╝██║     ██║  ██║╚██████╔╝██╔╝ ██╗╚██████╔╝███████║");
+    kprintln!("  ╚═════╝ ╚═════╝ ╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝");
+    kprintln!("");
+    kprintln!("  Kernel ready. Launching init...");
+    kprintln!("");
+
+    // 8. Первый userspace процесс
     sched::spawn_init();
-
-    // Передаём управление планировщику — он уже не вернётся
-    // Hand off to scheduler — this never returns
     sched::start();
 }
 
-/// Обработчик паники — halt навсегда.
-/// Panic handler — halt forever.
+/// Panic handler — выводим в UART и halt.
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    // TODO: вывести info на экран / UART
-    // TODO: print info to screen / UART
+    kprintln!("\n[KERNEL PANIC] {}", info);
     loop {
         core::hint::spin_loop();
     }
