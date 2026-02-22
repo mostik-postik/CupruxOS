@@ -1,0 +1,7 @@
+[package]
+name        = "cuprumfs-tools"
+version.workspace = true
+edition.workspace = true
+
+# Инструменты сборки на хосте — можно использовать std
+# Build-host tools — can use std

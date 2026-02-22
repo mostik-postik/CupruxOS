@@ -1,0 +1,7 @@
+[package]
+name        = "cupruxos-driver-manager"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+libcuprum = { path = "../../libcuprum" }

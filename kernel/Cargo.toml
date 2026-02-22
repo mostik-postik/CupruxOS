@@ -1,0 +1,20 @@
+[package]
+name        = "cupruxos-kernel"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "kernel"
+path = "src/main.rs"
+
+[dependencies]
+spin.workspace    = true
+bitflags.workspace = true
+log.workspace     = true
+limine            = "0.2"      # Limine boot protocol
+
+[features]
+default  = []
+x86_64   = []
+aarch64  = []
+riscv64  = []

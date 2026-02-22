@@ -1,0 +1,33 @@
+[workspace]
+resolver = "2"
+members = [
+    "kernel",
+    "libcuprum",
+    "userland/init",
+    "userland/vfs_server",
+    "userland/driver_manager",
+    "tools/cuprumfs",
+]
+
+[workspace.package]
+version     = "0.1.0"
+edition     = "2021"
+authors     = ["CupruxOS Contributors"]
+license     = "MIT"
+repository  = "https://github.com/yourusername/cupruxos"
+
+[workspace.dependencies]
+# Shared deps — версии меняем в одном месте
+spin        = "0.9"
+bitflags    = "2"
+log         = { version = "0.4", default-features = false }
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic       = "abort"
+opt-level   = 3
+lto         = true
+codegen-units = 1
+strip       = true
