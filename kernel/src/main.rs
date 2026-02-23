@@ -4,7 +4,12 @@
 #![no_main]
 #![feature(asm_const)]
 #![feature(naked_functions)]
+#![feature(alloc_error_handler)]
 #![deny(unsafe_op_in_unsafe_fn)]
+
+// Подключить стандартный alloc крейт (Box, Vec, Arc, ...)
+// Connect standard alloc crate (Box, Vec, Arc, ...)
+extern crate alloc;
 
 use core::panic::PanicInfo;
 
@@ -32,17 +37,26 @@ pub extern "C" fn kernel_main() -> ! {
     // 2. Physical Memory Manager
     kprintln!("[mm] Initializing PMM (Buddy)...");
     mm::pmm::init();
-    kprintln!("[mm] PMM OK");
 
     // 3. Virtual Memory Manager
     kprintln!("[mm] Initializing VMM...");
     mm::vmm::init();
-    kprintln!("[mm] VMM OK");
 
-    // 4. Kernel Heap
+    // 4. Kernel Heap — после этого работают Box<T>, Vec<T>!
+    //    Kernel Heap — after this Box<T>, Vec<T> work!
     kprintln!("[mm] Initializing heap (Slab)...");
     mm::heap::init();
-    kprintln!("[mm] Heap OK");
+
+    // Тест heap — убедиться что всё работает
+    // Heap test — make sure everything works
+    {
+        use alloc::vec::Vec;
+        use alloc::boxed::Box;
+        let mut v: Vec<u32> = Vec::new();
+        v.push(1); v.push(2); v.push(3);
+        let b = Box::new(42u64);
+        kprintln!("[mm] Heap test OK: vec={:?}, box={}", v, b);
+    }
 
     // 5. IPC + Capability
     kprintln!("[ipc] Initializing IPC + Capability...");
@@ -69,7 +83,7 @@ pub extern "C" fn kernel_main() -> ! {
     kprintln!("  Kernel ready. Launching init...");
     kprintln!("");
 
-    // 8. Первый userspace процесс
+    // 8. Первый userspace процесс / First userspace process
     sched::spawn_init();
     sched::start();
 }
