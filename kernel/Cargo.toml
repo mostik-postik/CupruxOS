@@ -11,7 +11,7 @@ path = "src/main.rs"
 spin.workspace    = true
 bitflags.workspace = true
 log.workspace     = true
-limine = "0.2"
+limine = "0.5"
 
 # alloc — Box<T>, Vec<T>, Arc<T>
 # подключается через #![feature(alloc_error_handler)]
