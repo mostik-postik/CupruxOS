@@ -82,8 +82,6 @@ impl Tss {
     }
 }
 
-// GDT не может быть const из-за TssEntry::from_tss
-// Храним части отдельно
 #[repr(C, packed)]
 struct GdtBase {
     null:        GdtEntry,
@@ -108,7 +106,7 @@ static mut GDT: GdtBase = GdtBase {
     kernel_data: GdtEntry::new(0x92, 0xC0),
     user_code:   GdtEntry::new(0xFA, 0xA0),
     user_data:   GdtEntry::new(0xF2, 0xC0),
-    tss:         TssEntry {
+    tss: TssEntry {
         limit_low: 0, base_low: 0, base_mid: 0,
         access: 0, granularity: 0, base_high: 0,
         base_upper: 0, reserved: 0,
@@ -117,15 +115,18 @@ static mut GDT: GdtBase = GdtBase {
 
 pub fn init() {
     unsafe {
-        let stack_top = KERNEL_STACK.as_ptr().add(KERNEL_STACK.len()) as u64;
+        // &raw const — безопасный способ получить указатель на static mut
+        // &raw const — safe way to get pointer to static mut
+        let stack_top = (&raw const KERNEL_STACK) as *const u8;
+        let stack_top = stack_top.add(KERNEL_STACK.len()) as u64;
         TSS.rsp0 = stack_top;
 
-        let tss_addr = &TSS as *const Tss as u64;
+        let tss_addr = (&raw const TSS) as u64;
         GDT.tss = TssEntry::from_tss(tss_addr, size_of::<Tss>() as u64);
 
         let descriptor = GdtDescriptor {
             size:   (size_of::<GdtBase>() - 1) as u16,
-            offset: &GDT as *const GdtBase as u64,
+            offset: (&raw const GDT) as u64,
         };
 
         core::arch::asm!(
@@ -137,10 +138,10 @@ pub fn init() {
             "mov gs, ax",
             "mov ss, ax",
             "push {kcode}",
-            "lea rax, [rip + 1f]",
+            "lea rax, [rip + 2f]",  // 2: вместо 1: — избегаем конфликта с бинарными литералами
             "push rax",
             "retfq",
-            "1:",
+            "2:",
             "ltr {tss:x}",
             desc  = in(reg) &descriptor,
             kcode = const KERNEL_CODE as u64,

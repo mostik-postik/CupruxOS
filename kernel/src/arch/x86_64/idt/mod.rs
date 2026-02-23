@@ -165,19 +165,19 @@ pub fn init() {
             IDT[vec] = IdtEntry::new(handler, KERNEL_CODE, ist, attr);
         };
 
-        set(0x00, isr_divide_error   as u64, 0, 0x8E);
-        set(0x06, isr_invalid_opcode as u64, 0, 0x8E);
-        set(0x08, isr_double_fault   as u64, 1, 0x8E);
-        set(0x0D, isr_gp_fault       as u64, 0, 0x8E);
-        set(0x0E, isr_page_fault     as u64, 0, 0x8E);
-        set(0x20, isr_timer          as u64, 0, 0x8E);
-        set(0x27, isr_spurious       as u64, 0, 0x8E);
+        set(0x00, isr_divide_error   as *const () as u64, 0, 0x8E);
+        set(0x06, isr_invalid_opcode as *const () as u64, 0, 0x8E);
+        set(0x08, isr_double_fault   as *const () as u64, 1, 0x8E);
+        set(0x0D, isr_gp_fault       as *const () as u64, 0, 0x8E);
+        set(0x0E, isr_page_fault     as *const () as u64, 0, 0x8E);
+        set(0x20, isr_timer          as *const () as u64, 0, 0x8E);
+        set(0x27, isr_spurious       as *const () as u64, 0, 0x8E);
 
         pic_init();
 
         let descriptor = IdtDescriptor {
             size:   (core::mem::size_of::<[IdtEntry; IDT_SIZE]>() - 1) as u16,
-            offset: IDT.as_ptr() as u64,
+            offset: (&raw const IDT) as u64,
         };
         asm!("lidt [{desc}]", desc = in(reg) &descriptor);
         asm!("sti");
