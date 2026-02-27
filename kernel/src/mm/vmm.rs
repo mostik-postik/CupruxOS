@@ -241,6 +241,24 @@ pub fn init() {
         );
         offset += PAGE_SIZE as u64;
     }
+
+    // Copy the kernel's higher-half PML4 entry from Limine's page tables.
+    //
+    // Our new PML4 only has PHYSICAL_MAP_OFFSET mapped. After activate() the
+    // CPU would try to fetch instructions at 0xFFFFFFFF8xxxxxxx — which is
+    // PML4[511] — and triple-fault because that entry is empty.
+    //
+    // Solution: read current CR3 (Limine's PML4), copy PML4[511] into ours.
+    // 0xFFFFFFFF80000000 >> 39 & 0x1FF = 511
+    unsafe {
+        let cr3: u64;
+        core::arch::asm!("mov {}, cr3", out(reg) cr3, options(nostack, readonly));
+
+        let limine_pml4 = phys_to_virt(PhysAddr::new(cr3 & !0xFFF)).as_ptr::<u64>();
+        let new_pml4    = phys_to_virt(space.pml4).as_mut_ptr::<u64>();
+        *new_pml4.add(511) = *limine_pml4.add(511);
+    }
+
     space.activate();
     crate::kprintln!("[vmm] PML4={:#x}", space.pml4.as_u64());
     *KERNEL_SPACE.lock() = Some(space);

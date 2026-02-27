@@ -19,13 +19,12 @@ iso: build
 	mkdir -p iso_root/boot
 	cp $(KERNEL) iso_root/boot/cupruxos-kernel
 	xorriso -as mkisofs \
-		-b boot/limine/limine-bios.bin \
+		-b boot/limine/limine-bios-cd.bin \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
 		--efi-boot boot/limine/limine-uefi-cd.bin \
 		-efi-boot-part --efi-boot-image \
 		--protective-msdos-label \
 		iso_root -o $(ISO)
-	limine bios-install $(ISO)
 	@echo "ISO создан / ISO created: $(ISO)"
 
 ## Запуск в QEMU / Run in QEMU
