@@ -3,3 +3,4 @@
 *.img
 *.elf
 *.map
+iso_root/boot/cupruxos-kernel
