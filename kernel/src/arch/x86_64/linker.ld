@@ -1,11 +1,12 @@
 OUTPUT_FORMAT(elf64-x86-64)
 OUTPUT_ARCH(i386:x86-64)
-ENTRY(kernel_main)
+ENTRY(_start)
 
 PHDRS
 {
-    text   PT_LOAD FLAGS(0x5); /* R+X = 1 (Execute) + 4 (Read) */
-    data   PT_LOAD FLAGS(0x6); /* R+W = 2 (Write) + 4 (Read) */
+    text   PT_LOAD FLAGS(0x5); /* R+X = Execute + Read */
+    rodata PT_LOAD FLAGS(0x4); /* R   = Read only      */
+    data   PT_LOAD FLAGS(0x6); /* R+W = Read + Write   */
 }
 
 SECTIONS
@@ -14,37 +15,36 @@ SECTIONS
     . = 0xFFFFFFFF80000000;
 
     /* Text section: executable code */
-    .text : ALIGN(4K) AT(ADDR(.text))
+    .text : ALIGN(4K)
     {
-        *(.multiboot_header)     /* Optional: for Multiboot/Multiboot2 */
         *(.text .text.*)
     } :text
 
     /* Read-only data (constants, string literals, rodata) */
-    .rodata : ALIGN(4K) AT(ADDR(.rodata))
+    .rodata : ALIGN(4K)
     {
         *(.rodata .rodata.*)
-    } :data   /* Note: often mapped R+X or R only; adjust PHDR if needed */
+    } :rodata
 
     /* Initialized data (global variables with initial values) */
-    .data : ALIGN(4K) AT(ADDR(.data))
+    .data : ALIGN(4K)
     {
         *(.data .data.*)
     } :data
 
     /* BSS section: uninitialized zero-initialized data */
-    .bss (NOLOAD) : ALIGN(4K) AT(ADDR(.bss))
+    .bss (NOLOAD) : ALIGN(4K)
     {
         __bss_start = .;
         *(COMMON)
         *(.bss .bss.*)
-        . = ALIGN(8);            /* Ensure 8-byte alignment for safety */
+        . = ALIGN(8);
         __bss_end = .;
     } :data
 
     /DISCARD/ :
     {
-        *(.eh_frame)             /* Avoid C++ exception tables in kernel */
+        *(.eh_frame)
         *(.debug*)
         *(.note*)
     }
