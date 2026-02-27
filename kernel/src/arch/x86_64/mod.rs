@@ -1,5 +1,7 @@
 //! x86_64 platform initialization
 
+mod boot; // entry point: _start via global_asm! (no NASM required)
+
 pub mod gdt;
 pub mod idt;
 pub mod mm;
